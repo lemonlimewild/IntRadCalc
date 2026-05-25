@@ -1,0 +1,11 @@
+func OnProgStart
+	rect 000000 0 0 sys.disp.dispWidth sys.disp.dispHeight
+	sys.disp.text 00FF00 "Test Code" 10 10 2
+
+func OnProgLoop
+	newVar int execCountDoubled
+	set execCountDoubled sys.execCount
+	mul execCountDoubled execCountDoubled 2
+	intToStr execCountDoubled
+	sys.disp.rect 000000 20 30 100 50
+	sys.disp.text execCountDoubled 20 30 2

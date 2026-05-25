@@ -1,0 +1,10 @@
+Instruction Set for IRCAPP Programs
+
+Variables:
+new (variable type) (variable name)
+set (affected variable) (variable value)
+add (affected variable) (value a) (value b)
+sub (affected variable) (value a) (value b)
+mul (affected variable) (value a) (value b)
+div (affected variable) (value a) (value b)
+
