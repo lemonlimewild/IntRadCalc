@@ -1,36 +1,14 @@
 #include <cstdint>
 #include <stdlib.h>
-#include <iostream>
+//#include <iostream>
+//#include <type_traits>
 #include <cfloat>
+#include <cstring>
 #include <limits>
 #include <vector>
 
 #include "HomeScreenApp.h"
 #include "Compiler.h"
-
-#define INVALID_OPCODE { "opInvalid", OP_INVALID, 0 }
-#define INVALID_ARGUMENT { ARG_INVALID, 0 }
-#define INVALID_COMPILED { nullptr, 0 };
-//EMPTY_ARGUMENTTREE { .length = 0, .start = nullptr }
-#define EMPTY_ARGUMENTTREE { nullptr, 0 }
-
-enum CompileErrorCode : uint8_t {
-	ERR_NO,
-	ERR_NOMEMALLOC,
-	ERR_DEFAULT,
-	ERR_INVALIDOPCODE,
-	ERR_NOSTRARGEND,
-	ERR_NOARGCOUNTMATCH,
-	ERR_NOFUNCEND,
-	ERR_NESTEDFUNC,
-	ERR_UNKNOWNFUNCEND,
-	ERR_FUNCMULTIDEFINE
-};
-
-struct CompileError {
-	CompileErrorCode errorCode;
-	const char* errorText;
-};
 
 const CompileError compileErrorCollection[] {
 	{ERR_NO, "No error."},
@@ -56,30 +34,6 @@ const char* getErrorText(CompileErrorCode code) {
 	return "Undefined Error.";
 }
 
-#define NOARGCOUNT UINT8_MAX
-enum OpValue : uint8_t {
-	OP_INVALID,
-	OP_FUNC,
-	OP_FUNCEND,
-	OP_CALL,
-	OP_NEW,
-	OP_SET,
-	OP_ADD,
-	OP_SUB,
-	OP_MUL,
-	OP_DIV,
-	OP_INTTOSTR,
-	OP_STRTOINT,
-	OP_SYS_DISP_RECT,
-	OP_SYS_DISP_TEXT
-};
-
-struct OpCode {
-	const char* tag;
-	OpValue OpCode;
-	uint8_t argCount;
-};
-
 const OpCode opCodeList[]{
   {"func", OP_FUNC, NOARGCOUNT},
   {"funcEnd", OP_FUNCEND, 0},
@@ -95,59 +49,23 @@ const OpCode opCodeList[]{
   {"sys.disp.rect", OP_SYS_DISP_RECT, 5},
   {"sys.disp.text", OP_SYS_DISP_TEXT, 5}
 };
-const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode);
+const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode); //TODOCONSIDER replace constant opCodeCount with #define
 
-enum ArgType : uint8_t {
-	ARG_INTEGER,
-	ARG_STRING,
-	ARG_FLOAT,
-	ARG_BOOL,
-	ARG_ARRAY,
-	ARG_VARIABLE,
-	ARG_COLOR,
-	ARG_INVALID
+const SysVarEntry sysVarList[] {
+	{"sys.execCount", SYS_APP_EXECCOUNT, MODULE_APP},
+	{"sys.disp.dispWidth", SYS_DISP_DISPWIDTH, MODULE_DISPLAY},
+	{"sys.disp.dispHeight", SYS_DISP_DISPHEIGHT, MODULE_DISPLAY}
 };
+const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry); //TODOCONSIDER replace constant sysVarCount with #define
 
-struct Argument;
-
-struct ArgumentTree {
-	Argument* start;
-	uint16_t length;
-};
-
-struct Argument {
-	ArgType type;
-	union {
-		int64_t intValue;
-		char* strValue;
-		double floatValue;
-		bool boolValue;
-		struct {
-			char* name;
-			uint32_t id;
-			bool isUDF;
-		} varValue;
-		char* colorValue;
-		ArgumentTree arrayValue;
-	};
-};
-
-struct Instruction {
-	OpCode opCode;
-	ArgumentTree args;
-};
-
-struct Function {
-	Instruction* entry;
-	uint32_t length;
-};
-
-struct Compiled {
-	Function* functions;
-	uint32_t functionCount;
-	Instruction* instructions; //hold on to original memory-owning pointer
-	uint32_t instructionCount;
-};
+const SysVarEntry* getSysVarEntry(SysVar var) {
+	for (uint8_t i = 0; i < sysVarCount; i++) {
+		if (sysVarList[i].sysVar == var) {
+			return sysVarList + i;
+		}
+	}
+	return nullptr;
+}
 
 struct VariableIndexEntry {
 	const char* name;
@@ -194,6 +112,7 @@ void freeCompiled(Compiled compiled) {
 }
 
 OpCode getOpCodeFromLine(const char* line) {
+	//TODOCONSIDER implement a more memory-efficient search, doesn't have to be very fast
 	//check for matching OpCodes
 	const OpCode* matchingOpCodes1[opCodeCount];
 	const OpCode* matchingOpCodes2[opCodeCount];
@@ -363,7 +282,7 @@ bool parseInteger(const char* startPtr, int64_t& intRef) {
 	bool hadDigit = false;
 	while (startPtr[position] >= '0' && startPtr[position] <= '9') {
 		hadDigit = true;
-		if (intRef > INT64_MAX / 10 || position == UINT16_MAX) return false; //TODO: fix parseInteger overflow check
+		if (intRef > INT64_MAX / 10 || position == UINT16_MAX) return false; //TODO fix parseInteger overflow check
 		intRef = intRef * 10 + (startPtr[position] - '0');
 		position++;
 	}
@@ -386,7 +305,7 @@ bool parseFloat(const char* startPtr, double& dblRef) {
 	bool hadDigit = false;
 	uint32_t offset = 0;
 	while ((startPtr[position] >= '0' && startPtr[position] <= '9') || startPtr[position] == '.') {
-		if (dblRef > DBL_MAX / 10 || position == UINT32_MAX) return false; //TODO: fix parseFloat overflow check
+		if (dblRef > DBL_MAX / 10 || position == UINT32_MAX) return false; //TODO fix parseFloat overflow check
 		if (startPtr[position] == '.') {
 			if (hadOffset) return false;
 			hadOffset = true;
@@ -409,7 +328,7 @@ bool parseFloat(const char* startPtr, double& dblRef) {
 	return isEndOfArgument(startPtr[position]) && hadDigit;
 }
 
-//TODOLATER: possible improvement by removing redundant decimal check, there's one in parseFloat
+//TODOLATER possible improvement by removing redundant decimal check, there's one in parseFloat
 bool parseNumber(const char* startPtr, Argument& argRef) {
 	argRef = INVALID_ARGUMENT;
 	uint32_t i = 0;
@@ -446,7 +365,7 @@ bool parseString(const char* startPtr, Argument& strRef) {
 	bool ignoreNextQuote = false;
 	while (startPtr[i] != '\0') {
 		if (startPtr[i] == '\"' && !ignoreNextQuote) break;
-		ignoreNextQuote = startPtr[i] == '#'; //TODOLATER: keeps the # in #", always remove unless ##, in which case keep one #
+		ignoreNextQuote = startPtr[i] == '#'; //TODOLATER keeps the # in #", always remove unless ##, in which case keep one #
 		i++;
 	}
 	if (startPtr[i] == '\0') {
@@ -536,12 +455,35 @@ bool parseVariable(const char* startPtr, Argument& varRef) {
 		name[j] = startPtr[j];
 	}
 
-	//varRef = { .type = ARG_VARIABLE, .varValue = { .name = name, .id = 0 } };
+	//search sysVarList for a match to system variables
+	//TODOCONSIDER write a faster search algorithm if memory allows
+	uint8_t match = 0;
+	bool isMatching;
+	for (uint8_t i = 0; i < sysVarCount; i++) {
+		isMatching = true;
+		for (uint8_t j = 0; sysVarList[i].tag[j] != '\n'; j++) {
+			if (sysVarList[i].tag[j] != name[j]) {
+				isMatching = false;
+				break;
+			}
+		}
+		if (isMatching) {
+			match = i;
+			break;
+		}
+	}
+
 	varRef = {};
 	varRef.type = ARG_VARIABLE;
 	varRef.varValue = {};
 	varRef.varValue.name = name;
 	varRef.varValue.id = 0;
+	varRef.varValue.sysVar;
+	if (isMatching) {
+
+	} else {
+		varRef.varValue.sysVar = getSysVarEntry(SYS_NONE);
+	}
 	return true;
 }
 
@@ -553,7 +495,6 @@ bool parseColor(const char* startPtr, Argument& colorRef) {
 		return false;
 	}
 	uint8_t i = 2;
-	//most retarded code follows
 	while (i < UINT8_MAX) {
 		if ((startPtr[i] > '9' || startPtr[i] < '0')) {
 			if ((startPtr[i] > 'f' || startPtr[i] < 'a')) {
@@ -690,7 +631,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 			return INVALID_COMPILED;
 		}
 		if (compiled[i].opCode.argCount != compiled[i].args.length && compiled[i].opCode.argCount != NOARGCOUNT) {
-			std::cout << "Counted " << compiled[i].args.length << " : Need " << (uint16_t)compiled[i].opCode.argCount << " : for " << compiled[i].opCode.tag << ";";
+			//std::cout << "Counted " << compiled[i].args.length << " : Need " << (uint16_t)compiled[i].opCode.argCount << " : for " << compiled[i].opCode.tag << ";";
 			currentErrorCode = ERR_NOARGCOUNTMATCH;
 			errorLineNumber = i + 1;
 			for (uint32_t j = 0; j < i; j++) {
@@ -789,12 +730,14 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 }
 
 /*bool compileToFile(fs::FS& fileSystem, const char* filePath) {
-	//TODOLATER: compile to file
+	//TODOLATER compile to file
 	//SD filesys must already be initialized
 	File file = fileSystem.open(filePath);
 	return file.available();
 }*/
 
+/*
+//functions used by debug logging functions
 uint32_t getArgumentTreeSize(ArgumentTree tree);
 
 uint32_t getArgumentSize(Argument* arg) {
@@ -821,6 +764,7 @@ uint32_t getArgumentTreeSize(ArgumentTree tree) {
 	return sum + tree.length * sizeof(Argument);
 }
 
+//below are debug logging functions (std::cout)
 void logVariableIndex(std::vector<VariableIndexEntry>* indexPtr) {
 	std::cout << "Logging Variable Index" << std::endl;
 	for (uint32_t i = 0; i < indexPtr->size(); i++) {
@@ -925,18 +869,6 @@ void logCompiledRAM(Compiled source) {
 }
 
 void logCompiledFile() {
-	//TODOLATER: implement debug logging from file
+	//TODOLATER implement debug logging from file
 }
-
-int main() {
-	Compiled compiledApp = compileToRAM(&HomeScreenApp);
-	//fs::FS SD (std::make_shared<fs::WinFSImpl>("sdcard"));
-	//std::cout << compileToFile(SD, "/");
-	//logCompiledFile();
-	logCompiledRAM(compiledApp);
-	freeCompiled(compiledApp);
-	//std::cout << getOpCodeFromLine("func abc").tag << std::endl;
-	//logArgumentTree(getArgumentTreeFromLine("func \"aa [a]]\" [\"i\" [ \"a123#\"\" var1]] \"c\" true 1234567890 3.14159 var2"));
-	//logArgumentTree(getArgumentTreeFromLine("sys.disp.rect 0x000000 0 0 sys.disp.dispWidth sys.disp.dispHeight"));
-	return 0;
-}
+*/

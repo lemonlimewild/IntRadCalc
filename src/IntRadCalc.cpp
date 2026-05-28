@@ -15,23 +15,23 @@ Manages display, SD card, LoRa, and button, display touch, and camera inputs
 //#include <Fonts\JetBrainsMono16.h>
 
 #include "Compiler.h"
+#include "HomeScreenApp.h"
 
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite frameBuffer = TFT_eSprite(&tft); //create a frame buffer sprite
 HardwareSerial& loraSerial = Serial1;
 std::string softwareVersion = "1.0";
 
-//pin definitions
-//const uint16_t TFT_MOSI = 12;
-//const uint16_t TFT_MISO = 10;
-//const uint16_t TFT_SCLK = 18;
-//const uint16_t TFT_CS = 14;
-//const uint16_t TFT_DC = 13;
-//const uint16_t TFT_RST = 9;
-//const uint16_t TFT_BL = 11;
-
-//const uint16_t TOUCH_CS = 7;
-//const uint16_t TOUCH_IRQ = 6;
+//pin definitions for reference
+//TFT_MOSI = 12;
+//TFT_MISO = 10;
+//TFT_SCLK = 18;
+//TFT_CS = 14;
+//TFT_DC = 13;
+//TFT_RST = 9;
+//TFT_BL = 11;
+//TOUCH_CS = 7;
+//TOUCH_IRQ = 6;
 
 const uint16_t SD_CS = 17;
 
@@ -42,15 +42,6 @@ const uint16_t LORA_RST = 38;
 const uint16_t BTN_PL = 4; //parallel load
 const uint16_t BTN_CLK = 5; //clock to view next (B16 -> B1)
 const uint16_t BTN_SOUT = 8; //serial out
-
-//time vars
-uint32_t fsMillis = 0; //frame start milliseconds
-uint32_t fsMicros = 0; //frame start microseconds
-
-//button control vars
-uint16_t btnScanFreq = 10000; //scan buttons every X microseconds, 10k uS = 100Hz
-uint64_t lastBtnScanTime = 0; //last button scan time in microseconds
-bool buttonStates[16] = {}; //holds current button states
 
 #define TFT_GREY 0x5AEB;
 
@@ -89,48 +80,11 @@ int tftAndSDSetup() {
   return sdInit;
 }
 
-void buttonSetup() {
-  pinMode(BTN_PL, OUTPUT);
-  pinMode(BTN_CLK, OUTPUT);
-  pinMode(BTN_SOUT, INPUT);
-
-  digitalWrite(BTN_PL, HIGH);
-  digitalWrite(BTN_CLK, LOW); //low to high transition clocks
-}
-
-void scanButtons() {
-  //load parallel button inputs into parallel to serial converters
-  digitalWrite(BTN_PL, LOW);
-  delayMicroseconds(1);
-  digitalWrite(BTN_PL, HIGH);
-
-  //clock and store all button states, from button 16 down to 1
-  for (uint8_t i = 0; i < 16; i++) {
-    digitalWrite(BTN_CLK, HIGH);
-    delayMicroseconds(1);
-    buttonStates[15 - i] = digitalRead(BTN_SOUT); //read after rising edge
-    digitalWrite(BTN_CLK, LOW);
-    delayMicroseconds(1);
-  }
-}
-
 void setup(void) {
   bool SDAvailable = tftAndSDSetup();
-  buttonSetup();
   Serial.begin(9600);
+  Compiled testCompiled = compileToRAM(&HomeScreenApp);
   //loraSetup();
-  //setupApplication();
 }
 
-void loop() {
-  fsMillis = millis();
-  fsMicros = micros();
-
-  //button logic
-  if (fsMicros - lastBtnScanTime > btnScanFreq) {
-    scanButtons();
-    lastBtnScanTime = fsMicros;
-  }
-
-  //executeApplication();
-}
+void loop() {}

@@ -10,7 +10,7 @@ static const char* const appContent[] = {
   "funcEnd",
   "func Main",
   "new execCountDoubled",
-  "set execCountDoubled sys.execCount",
+  "set execCountDoubled sys.app.execCount",
   "mul execCountDoubled execCountDoubled 2",
   "intToStr execCountDoubled",
   "sys.disp.rect 0x000000 20 30 100 50",
