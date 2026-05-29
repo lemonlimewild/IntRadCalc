@@ -1,6 +1,10 @@
 #pragma once
 #include "AppHeader.h"
 
+#ifndef INITIALIZATION_H
+//TODO if included, use logging to console (Interpreter.h too)
+#endif //INITIALIZATION_H
+
 #ifndef COMPILER_H
 #define COMPILER_H
 #define INVALID_OPCODE { "opInvalid", OP_INVALID, 0 }

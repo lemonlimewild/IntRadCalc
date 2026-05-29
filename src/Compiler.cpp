@@ -7,7 +7,6 @@
 #include <limits>
 #include <vector>
 
-#include "HomeScreenApp.h"
 #include "Compiler.h"
 
 const CompileError compileErrorCollection[] {
@@ -49,14 +48,14 @@ const OpCode opCodeList[]{
   {"sys.disp.rect", OP_SYS_DISP_RECT, 5},
   {"sys.disp.text", OP_SYS_DISP_TEXT, 5}
 };
-const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode); //TODOCONSIDER replace constant opCodeCount with #define
+const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode);
 
 const SysVarEntry sysVarList[] {
 	{"sys.execCount", SYS_APP_EXECCOUNT, MODULE_APP},
 	{"sys.disp.dispWidth", SYS_DISP_DISPWIDTH, MODULE_DISPLAY},
 	{"sys.disp.dispHeight", SYS_DISP_DISPHEIGHT, MODULE_DISPLAY}
 };
-const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry); //TODOCONSIDER replace constant sysVarCount with #define
+const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry);
 
 const SysVarEntry* getSysVarEntry(SysVar var) {
 	for (uint8_t i = 0; i < sysVarCount; i++) {
@@ -719,7 +718,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 			}
 		}
 	}
-	logVariableIndex(variableIndex);
+	//logVariableIndex(variableIndex);
 	//update variables using indices from the table
 	for (uint32_t i = 0; i < appPointer->contentLines; i++) {
 		//look through each argument, if type variable add id and isUDF
