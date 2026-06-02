@@ -13,15 +13,14 @@ Manages display, SD card, LoRa, and button, display touch, and camera inputs
 #include "Compiler.h"
 #include "Interpreter.h"
 #include "HomeScreenApp.h"
-
 #define TFT_GREY 0x5AEB;
 
 void setup(void) {
-  bool sdAvailable = sdSetup();
-  tftSetup(sdAvailable);
+  bool sdReady = sdSetup();
+  bool tftReady = tftSetup(sdReady, true);
   Serial.begin(9600);
   Compiled testCompiled = compileToRAM(&HomeScreenApp);
-  beginExecution(testCompiled);
+  //beginExecution(testCompiled);
   //loraSetup();
 }
 

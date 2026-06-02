@@ -28,8 +28,10 @@ const uint16_t LORA_DOUT = 48; //data from LoRa (MCU RX)
 const uint16_t LORA_DIN = 47; //data to loRa (MCU TX)
 const uint16_t LORA_RST = 38;
 
-#endif
+#endif //INITIALIZATION_H
+
+extern uint16_t consoleHeight;
 
 void loraSetup();
 bool sdSetup();
-void tftSetup(bool sdReady);
+bool tftSetup(bool sdReady, bool use16BitColorDepth);

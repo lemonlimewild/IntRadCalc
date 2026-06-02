@@ -8,6 +8,8 @@ HardwareSerial& loraSerial = Serial1;
 
 std::string softwareVersion = "1.0";
 
+uint16_t consoleHeight;
+
 void loraSetup() {
   //loraSerial.begin(9600, SERIAL_8N1, LORA_DOUT, LORA_DIN); //to do
 }
@@ -18,19 +20,31 @@ bool sdSetup() {
   return sdInit;
 }
 
-void tftSetup(bool sdReady) {
+bool tftSetup(bool sdReady, bool use16BitColorDepth) {
   pinMode(TFT_BL, OUTPUT);
   pinMode(TFT_RST, OUTPUT);
   analogWrite(TFT_BL, 128);
   tft.init();
   tft.setRotation(3);
-  frameBuffer.setColorDepth(16);
-  frameBuffer.createSprite(tft.width(), tft.height());
-  logToConsole(("Running version: " + softwareVersion).data());
-  logToConsole(("Display Resolution: " + std::to_string(tft.width()) + " x " + std::to_string(tft.height()) + " pixels").data());
-  if (sdReady) {
-    logToConsole("SD status: Connected");
+  if (use16BitColorDepth) {
+    frameBuffer.setColorDepth(16);
   } else {
-    logToConsole("SD status: Failed");
+    frameBuffer.setColorDepth(8);
   }
+  frameBuffer.createSprite(tft.width(), tft.height());
+  if (!frameBuffer.created()) {
+    return false;
+  }
+
+  consoleHeight = tft.height() / 2;
+
+  logToConsole(("Running version: " + softwareVersion + "\0").data());
+  logToConsole(("Display Resolution: " + std::to_string(tft.width()) + " x " + std::to_string(tft.height()) + " pixels\0").data());
+  if (sdReady) {
+    logToConsole("SD status: Connected\0");
+  } else {
+    logToConsole("SD status: Failed\0");
+  }
+  renderConsole();
+  return true;
 }

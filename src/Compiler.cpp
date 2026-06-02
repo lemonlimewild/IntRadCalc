@@ -10,18 +10,18 @@
 #include "Compiler.h"
 
 const CompileError compileErrorCollection[] {
-	{ERR_NO, "No error."},
-	{ERR_NOMEMALLOC, "Memory allocation failure."},
-	{ERR_DEFAULT, "Unspecified error."},
-	{ERR_INVALIDOPCODE, "An invalid operation code is present."},
-	{ERR_NOSTRARGEND, "String argument has no end."},
-	{ERR_NOARGCOUNTMATCH, "Argument count does not match."},
-	{ERR_NESTEDFUNC, "Nested function present."},
-	{ERR_UNKNOWNFUNCEND, "An unknown function was ended."},
-	{ERR_NOFUNCEND, "Function has no end."},
-	{ERR_FUNCMULTIDEFINE, "Function was defined multiple times."}
+	{COMERR_NO, "No error."},
+	{COMERR_NOMEMALLOC, "Memory allocation failure."},
+	{COMERR_DEFAULT, "Unspecified error."},
+	{COMERR_INVALIDOPCODE, "An invalid operation code is present."},
+	{COMERR_NOSTRARGEND, "String argument has no end."},
+	{COMERR_NOARGCOUNTMATCH, "Argument count does not match."},
+	{COMERR_NESTEDFUNC, "Nested function present."},
+	{COMERR_UNKNOWNFUNCEND, "An unknown function was ended."},
+	{COMERR_NOFUNCEND, "Function has no end."},
+	{COMERR_FUNCMULTIDEFINE, "Function was defined multiple times."}
 };
-CompileErrorCode currentErrorCode = ERR_NO;
+CompileErrorCode currentErrorCode = COMERR_NO;
 uint16_t errorLineNumber = 0;
 
 const char* getErrorText(CompileErrorCode code) {
@@ -51,9 +51,9 @@ const OpCode opCodeList[]{
 const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode);
 
 const SysVarEntry sysVarList[] {
-	{"sys.execCount", SYS_APP_EXECCOUNT, MODULE_APP},
-	{"sys.disp.dispWidth", SYS_DISP_DISPWIDTH, MODULE_DISPLAY},
-	{"sys.disp.dispHeight", SYS_DISP_DISPHEIGHT, MODULE_DISPLAY}
+	{"sys.execCount", SYSVAR_APP_EXECCOUNT, SYSMODULE_APP},
+	{"sys.disp.dispWidth", SYSVAR_DISP_DISPWIDTH, SYSMODULE_DISPLAY},
+	{"sys.disp.dispHeight", SYSVAR_DISP_DISPHEIGHT, SYSMODULE_DISPLAY}
 };
 const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry);
 
@@ -481,7 +481,7 @@ bool parseVariable(const char* startPtr, Argument& varRef) {
 	if (isMatching) {
 
 	} else {
-		varRef.varValue.sysVar = getSysVarEntry(SYS_NONE);
+		varRef.varValue.sysVar = getSysVarEntry(SYSVAR_NONE);
 	}
 	return true;
 }
@@ -581,14 +581,14 @@ CompileErrorCode updateVariableIndex(std::vector<VariableIndexEntry>* indexPtr, 
 	if (line.opCode.OpCode == OP_FUNC) {
 		for (uint32_t i = 0; i < (uint32_t)indexPtr->size(); i++) {
 			if (std::strcmp((*indexPtr)[i].name, line.args.start[0].varValue.name) == 0) {
-				return ERR_FUNCMULTIDEFINE;
+				return COMERR_FUNCMULTIDEFINE;
 			}
 		}
 		indexPtr->push_back({ line.args.start[0].varValue.name, true });
 	}
 	//browse the argument tree for variables
 	updateVariableIndexFromArgumentTree(indexPtr, line.args);
-	return ERR_NO;
+	return COMERR_NO;
 }
 
 void indexVariableArguments(ArgumentTree args, std::vector<VariableIndexEntry>* indexPtr) {
@@ -606,10 +606,11 @@ void indexVariableArguments(ArgumentTree args, std::vector<VariableIndexEntry>* 
 	}
 }
 
+//TODONEXT scope detection for variables
 Compiled compileToRAM(const AppHeader* appPointer) {
 	Instruction* compiled = (Instruction*)malloc(sizeof(Instruction) * appPointer->contentLines);
 	if (!compiled) {
-		currentErrorCode = ERR_NOMEMALLOC;
+		currentErrorCode = COMERR_NOMEMALLOC;
 		errorLineNumber = 0;
 		return INVALID_COMPILED;
 	}
@@ -621,7 +622,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 	for (uint32_t i = 0; i < appPointer->contentLines; i++) {
 		compiled[i] = { getOpCodeFromLine(appPointer->content[i]), getArgumentTreeFromLine(appPointer->content[i]) };
 		if (compiled[i].opCode.OpCode == OP_INVALID || (!compiled[i].args.start && compiled[i].args.length != 0)) {
-			currentErrorCode = ERR_INVALIDOPCODE;
+			currentErrorCode = COMERR_INVALIDOPCODE;
 			errorLineNumber = i + 1;
 			for (uint32_t j = 0; j < i; j++) {
 				freeArgumentTree(compiled[j].args);
@@ -631,7 +632,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 		}
 		if (compiled[i].opCode.argCount != compiled[i].args.length && compiled[i].opCode.argCount != NOARGCOUNT) {
 			//std::cout << "Counted " << compiled[i].args.length << " : Need " << (uint16_t)compiled[i].opCode.argCount << " : for " << compiled[i].opCode.tag << ";";
-			currentErrorCode = ERR_NOARGCOUNTMATCH;
+			currentErrorCode = COMERR_NOARGCOUNTMATCH;
 			errorLineNumber = i + 1;
 			for (uint32_t j = 0; j < i; j++) {
 				freeArgumentTree(compiled[j].args);
@@ -641,7 +642,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 		}
 		if (compiled[i].opCode.OpCode == OP_FUNC) {
 			if (inFunction) {
-				currentErrorCode = ERR_NESTEDFUNC;
+				currentErrorCode = COMERR_NESTEDFUNC;
 				errorLineNumber = i + 1;
 				for (uint32_t j = 0; j < i; j++) {
 					freeArgumentTree(compiled[j].args);
@@ -653,7 +654,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 			functionCount++;
 		} else if (compiled[i].opCode.OpCode == OP_FUNCEND) {
 			if (!inFunction) {
-				currentErrorCode = ERR_UNKNOWNFUNCEND;
+				currentErrorCode = COMERR_UNKNOWNFUNCEND;
 				errorLineNumber = i + 1;
 				for (uint32_t j = 0; j < i; j++) {
 					freeArgumentTree(compiled[j].args);
@@ -664,7 +665,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 			inFunction = false;
 		}
 		variableIndexUpdateResult = updateVariableIndex(variableIndex, compiled[i]);
-		if (variableIndexUpdateResult != ERR_NO) {
+		if (variableIndexUpdateResult != COMERR_NO) {
 			currentErrorCode = variableIndexUpdateResult;
 			errorLineNumber = i + 1;
 			for (uint32_t j = 0; j < i; j++) {
@@ -675,7 +676,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 		}
 	}
 	if (inFunction) {
-		currentErrorCode = ERR_NOFUNCEND;
+		currentErrorCode = COMERR_NOFUNCEND;
 		errorLineNumber = appPointer->contentLines;
 		for (uint32_t i = 0; i < appPointer->contentLines; i++) {
 			freeArgumentTree(compiled[i].args);
@@ -734,6 +735,135 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 	File file = fileSystem.open(filePath);
 	return file.available();
 }*/
+
+//functions used by debug logging functions
+uint32_t getArgumentTreeSize(ArgumentTree tree);
+
+uint32_t getArgumentSize(Argument* arg) {
+	uint32_t i = 0;
+	switch (arg->type) {
+		case ARG_ARRAY:
+			return getArgumentTreeSize(arg->arrayValue);
+		case ARG_STRING:
+			while (arg->strValue[i] != '\0') i++;
+			return (i + 1) * sizeof(char);
+		case ARG_VARIABLE:
+			while (arg->varValue.name[i] != '\0') i++;
+			return (i + 1) * sizeof(char);
+		default:
+			return 0;
+	}
+}
+
+uint32_t getArgumentTreeSize(ArgumentTree tree) {
+	uint32_t sum = 0;
+	for (uint32_t i = 0; i < tree.length; i++) {
+		sum += getArgumentSize(tree.start + i);
+	}
+	return sum + tree.length * sizeof(Argument);
+}
+
+//below are debug logging functions (std::cout)
+void logVariableIndex(std::vector<VariableIndexEntry>* indexPtr) {
+	logToConsole("Logging Variable Index");
+	for (uint32_t i = 0; i < indexPtr->size(); i++) {
+		if ((*indexPtr)[i].isUDF) {
+			logToConsole((std::string("Function: ") + std::string((*indexPtr)[i].name) + std::string(" : Index ") + std::to_string(i)).c_str());
+		} else {
+			logToConsole((std::string("Variable: ") + std::string((*indexPtr)[i].name) + std::string(" : Index ") + std::to_string(i)).c_str());
+		}
+	}
+}
+
+void logArgumentTree(ArgumentTree tree, uint16_t subTree = 0) {
+	if (subTree == 0) {
+		if (tree.start != nullptr) {
+			logToConsole((std::string("Content Size ") + std::to_string(getArgumentTreeSize(tree)) + std::string(" -  Logging Argument Tree...")).c_str());
+		} else {
+			logToConsole((std::string("Content Size ") + std::to_string(getArgumentTreeSize(tree)) + std::string(" -  Empty of Invalid Tree.")).c_str());
+			return;
+		}
+	} else {
+		logToConsole((std::string("Array with Depth ") + std::to_string(subTree)).c_str());
+	}
+	for (uint16_t i = 0; i < tree.length; i++) {
+		for (uint16_t j = 0; j < subTree; j++) {
+			logToConsole("    ", true);
+		}
+		logToConsole((std::string("Size ") + std::to_string(getArgumentSize(tree.start + i)) + std::string(" - ")).c_str());
+		switch (tree.start[i].type) {
+			case ARG_ARRAY:
+				logArgumentTree(tree.start[i].arrayValue, subTree + 1);
+				break;
+			case ARG_STRING:
+				logToConsole((std::string("String: \"") + std::string(tree.start[i].strValue) + std::string("\"")).c_str());
+				break;
+			case ARG_INTEGER:
+				logToConsole((std::string("Integer: ") + std::to_string(tree.start[i].intValue)).c_str());
+				break;
+				case ARG_FLOAT:
+				logToConsole((std::string("Float: ") + std::to_string(tree.start[i].intValue)).c_str());
+				break;
+				case ARG_BOOL:
+				logToConsole((std::string("Boolean: ") + std::string(((tree.start[i].boolValue) ? "true" : "false"))).c_str());
+				break;
+				case ARG_COLOR:
+				logToConsole((std::string("Color: ") + std::string(tree.start[i].colorValue)).c_str());
+				break;
+				case ARG_VARIABLE:
+				if (tree.start[i].varValue.isUDF) {
+					logToConsole((std::string("Function (Call/Name): ") + std::string(tree.start[i].varValue.name) + std::string(" : ID: ") + std::to_string(tree.start[i].varValue.id)).c_str());
+				} else {
+					logToConsole((std::string("Variable: ") + std::string(tree.start[i].varValue.name) + std::string(" : ID: ") + std::to_string(tree.start[i].varValue.id)).c_str());
+				}
+				break;
+			case ARG_INVALID:
+				logToConsole("Invalid Argument");;
+				break;
+			default:
+				logToConsole("Unknown Argument");;
+		}
+	}
+	if (subTree != 0) {
+		for (uint16_t j = 0; j < subTree - 1; j++) {
+			logToConsole("    ", true);
+		}
+	}
+}
+
+void logInstruction(Instruction inst) {
+	if ((!inst.args.start && inst.args.length != 0) || inst.opCode.OpCode == OP_INVALID) {
+		logToConsole("Invalid Instruction");
+		return;
+	}
+	uint8_t i = 0;
+	while (i < UINT8_MAX && inst.opCode.OpCode != opCodeList[i].OpCode) i++;
+	if (i == UINT8_MAX) return;
+	logToConsole(opCodeList[i].tag);
+	logArgumentTree(inst.args);
+}
+
+void logFunction(Function func) {
+	logToConsole("Logging Function...");
+	if (!func.entry) {
+		logToConsole("Invalid Function");
+		return;
+	}	for (uint32_t i = 0; i < func.length; i++) {
+		logInstruction(func.entry[i]);
+	}
+}
+
+void logCompiledRAM(Compiled source) {
+	logToConsole((std::string("Code ") + std::to_string(currentErrorCode + 0) + std::string(getErrorText(currentErrorCode))).c_str());
+	logToConsole((std::string("Line ") + std::to_string(errorLineNumber)).c_str());
+	if (!source.functions) {
+		logToConsole("Invalid Compiled");
+		return;
+	}
+	for (uint32_t i = 0; i < source.functionCount; i++) {
+		logFunction(source.functions[i]);
+	}
+}
 
 /*
 //functions used by debug logging functions
