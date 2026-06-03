@@ -8,7 +8,6 @@
 #include <SD.h>
 #include <SPI.h>
 #include <TFT_eSPI.h>
-
 #include "Console.h"
 
 //pin definitions for reference

@@ -25,12 +25,14 @@ RuntimeError executeLine(Instruction line) {
         case OpValue::OP_NEW:
             scope.varArrPtr.push_back({line.args.start[0].varValue.id, line.args.start[1]});
             break;
-        default:
+        default:  
             return RuntimeError::RUNERR_UNKNOWNOPCODE;
     };
+    return RuntimeError::RUNERR_NO;
 }
 
 void beginExecution(Compiled appData) {
+    if (appData.appHeaderPtr->minOSVer > softwareVersion) return;
     scopeStack = {};
     scopeStack.push_back({});
     RuntimeError lineResult = RuntimeError::RUNERR_NO;

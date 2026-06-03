@@ -17,9 +17,10 @@ Manages display, SD card, LoRa, and button, display touch, and camera inputs
 
 void setup(void) {
   bool sdReady = sdSetup();
-  bool tftReady = tftSetup(sdReady, true);
+  bool tftReady = tftSetup(sdReady, false);
   Serial.begin(9600);
   Compiled testCompiled = compileToRAM(&HomeScreenApp);
+  logCompiledRAM(testCompiled);
   //beginExecution(testCompiled);
   //loraSetup();
 }

@@ -6,7 +6,7 @@ TFT_eSprite frameBuffer = TFT_eSprite(&tft); //create a frame buffer sprite
 
 HardwareSerial& loraSerial = Serial1;
 
-std::string softwareVersion = "1.0";
+float softwareVersion = 1.0;
 
 uint16_t consoleHeight;
 
@@ -37,14 +37,12 @@ bool tftSetup(bool sdReady, bool use16BitColorDepth) {
   }
 
   consoleHeight = tft.height() / 2;
-
-  logToConsole(("Running version: " + softwareVersion + "\0").data());
-  logToConsole(("Display Resolution: " + std::to_string(tft.width()) + " x " + std::to_string(tft.height()) + " pixels\0").data());
+  logToConsole((std::string("Running version: ") + std::to_string(softwareVersion)).c_str());
+  logToConsole((std::string("Display Resolution: ") + std::to_string(tft.width()) + std::string(" x ") + std::to_string(tft.height()) + std::string(" pixels")).c_str());
   if (sdReady) {
-    logToConsole("SD status: Connected\0");
+    logToConsole("SD status: Connected");
   } else {
-    logToConsole("SD status: Failed\0");
+    logToConsole("SD status: Failed");
   }
-  renderConsole();
   return true;
 }

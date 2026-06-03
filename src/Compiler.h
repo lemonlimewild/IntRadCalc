@@ -107,6 +107,7 @@ struct Compiled {
 	uint32_t functionCount;
 	Instruction* instructions; //hold on to original memory-owning pointer
 	uint32_t instructionCount;
+	const AppHeader* appHeaderPtr;
 };
 
 #endif //COMPILER_H
@@ -115,3 +116,4 @@ extern CompileErrorCode currentErrorCode;
 extern uint16_t errorLineNumber;
 
 Compiled compileToRAM(const AppHeader* appPointer);
+void logCompiledRAM(Compiled source);
