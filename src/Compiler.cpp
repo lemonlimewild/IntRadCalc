@@ -69,6 +69,7 @@ const SysVarEntry* getSysVarEntry(SysVar var) {
 struct VariableIndexEntry {
 	const char* name;
 	bool isUDF; //user-defined function
+	uint32_t functionID;
 };
 void logVariableIndex(std::vector<VariableIndexEntry>* indexPtr);
 
@@ -460,7 +461,7 @@ bool parseVariable(const char* startPtr, Argument& varRef) {
 	bool isMatching;
 	for (uint8_t i = 0; i < sysVarCount; i++) {
 		isMatching = true;
-		for (uint8_t j = 0; sysVarList[i].tag[j] != '\n'; j++) {
+		for (uint8_t j = 0; sysVarList[i].tag[j] != '\0'; j++) {
 			if (sysVarList[i].tag[j] != name[j]) {
 				isMatching = false;
 				break;
@@ -477,9 +478,8 @@ bool parseVariable(const char* startPtr, Argument& varRef) {
 	varRef.varValue = {};
 	varRef.varValue.name = name;
 	varRef.varValue.id = 0;
-	varRef.varValue.sysVar;
 	if (isMatching) {
-
+		varRef.varValue.sysVar = &sysVarList[match];
 	} else {
 		varRef.varValue.sysVar = getSysVarEntry(SYSVAR_NONE);
 	}
@@ -562,52 +562,72 @@ ArgumentTree getArgumentTreeFromLine(const char* line) {
 	return { argumentPtr, argumentCount };
 }
 
-void updateVariableIndexFromArgumentTree(std::vector<VariableIndexEntry>* indexPtr, ArgumentTree args) {
+void updateVariableIndexFromArgumentTree(std::vector<VariableIndexEntry>* indexPtr, ArgumentTree args, uint32_t functionID) {
 	bool foundInIndex;
 	for (uint32_t i = 0; i < args.length; i++) {
 		if (args.start[i].type == ARG_ARRAY) {
-			updateVariableIndexFromArgumentTree(indexPtr, args.start[i].arrayValue);
+			updateVariableIndexFromArgumentTree(indexPtr, args.start[i].arrayValue, functionID);
 		} else if (args.start[i].type == ARG_VARIABLE) {
 			foundInIndex = false;
 			for (uint32_t j = 0; j < (uint32_t)indexPtr->size(); j++) {
-				if (std::strcmp((*indexPtr)[j].name, args.start[i].varValue.name) == 0) foundInIndex = true;
+				if (std::strcmp((*indexPtr)[j].name, args.start[i].varValue.name) == 0 && functionID == (*indexPtr)[j].functionID) {
+					foundInIndex = true;
+					break;
+				}
 			}
-			if (!foundInIndex) indexPtr->push_back({ args.start[i].varValue.name, false });
+			if (!foundInIndex) indexPtr->push_back({ args.start[i].varValue.name, false, functionID });
 		}
 	}
 }
 
-CompileErrorCode updateVariableIndex(std::vector<VariableIndexEntry>* indexPtr, Instruction line) {
+CompileErrorCode updateVariableIndex(std::vector<VariableIndexEntry>* indexPtr, Instruction line, uint32_t functionID) {
 	if (line.opCode.OpCode == OP_FUNC) {
 		for (uint32_t i = 0; i < (uint32_t)indexPtr->size(); i++) {
 			if (std::strcmp((*indexPtr)[i].name, line.args.start[0].varValue.name) == 0) {
 				return COMERR_FUNCMULTIDEFINE;
 			}
 		}
-		indexPtr->push_back({ line.args.start[0].varValue.name, true });
+		indexPtr->push_back({ line.args.start[0].varValue.name, true, UINT32_MAX });
+		if (line.args.length > 1) {
+			ArgumentTree functionParams = { line.args.start + 1, (uint16_t)(line.args.length - 1) };
+			updateVariableIndexFromArgumentTree(indexPtr, functionParams, functionID);
+		}
+		return COMERR_NO;
 	}
 	//browse the argument tree for variables
-	updateVariableIndexFromArgumentTree(indexPtr, line.args);
+	updateVariableIndexFromArgumentTree(indexPtr, line.args, functionID);
 	return COMERR_NO;
 }
 
-void indexVariableArguments(ArgumentTree args, std::vector<VariableIndexEntry>* indexPtr) {
+void indexVariableArguments(ArgumentTree args, std::vector<VariableIndexEntry>* indexPtr, uint32_t functionID) {
 	for (uint32_t i = 0; i < args.length; i++) {
 		if (args.start[i].type == ARG_ARRAY) {
-			indexVariableArguments(args.start[i].arrayValue, indexPtr);
+			indexVariableArguments(args.start[i].arrayValue, indexPtr, functionID);
 		} else if (args.start[i].type == ARG_VARIABLE) {
+			int32_t bestMatchIndex = -1;
+			int32_t udfMatchIndex = -1;
 			for (uint32_t j = 0; j < (uint32_t)indexPtr->size(); j++) {
-				if (strcmp((*indexPtr)[j].name, args.start[i].varValue.name) == 0) {
-					args.start[i].varValue.id = j;
-					args.start[i].varValue.isUDF = (*indexPtr)[j].isUDF;
+				if (strcmp((*indexPtr)[j].name, args.start[i].varValue.name) != 0) continue;
+				if (functionID == (*indexPtr)[j].functionID) {
+					bestMatchIndex = j;
+					break;
 				}
+				if ((*indexPtr)[j].isUDF) {
+					udfMatchIndex = j;
+				}
+			}
+			if (bestMatchIndex >= 0) {
+				args.start[i].varValue.id = bestMatchIndex;
+				args.start[i].varValue.isUDF = (*indexPtr)[bestMatchIndex].isUDF;
+			} else if (udfMatchIndex >= 0) {
+				args.start[i].varValue.id = udfMatchIndex;
+				args.start[i].varValue.isUDF = (*indexPtr)[udfMatchIndex].isUDF;
 			}
 		}
 	}
 }
 
-//TODONEXT scope detection for variables
-Compiled compileToRAM(const AppHeader* appPointer) {
+Compiled compileToRAM(const AppHeader* appPointer, bool doLogVariableIndex) {
 	Instruction* compiled = (Instruction*)malloc(sizeof(Instruction) * appPointer->contentLines);
 	if (!compiled) {
 		currentErrorCode = COMERR_NOMEMALLOC;
@@ -617,7 +637,9 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 	std::vector<VariableIndexEntry>* variableIndex = new std::vector<VariableIndexEntry>();
 
 	bool inFunction = false;
+	Instruction* functionLine = nullptr;
 	uint32_t functionCount = 0;
+	uint32_t currentScopeID = UINT32_MAX;
 	CompileErrorCode variableIndexUpdateResult;
 	for (uint32_t i = 0; i < appPointer->contentLines; i++) {
 		compiled[i] = { getOpCodeFromLine(appPointer->content[i]), getArgumentTreeFromLine(appPointer->content[i]) };
@@ -651,7 +673,10 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 				return INVALID_COMPILED;
 			}
 			inFunction = true;
+			functionLine = compiled + i;
 			functionCount++;
+			currentScopeID = functionCount;
+			compiled[i].args.start[0].varValue.id = currentScopeID;
 		} else if (compiled[i].opCode.OpCode == OP_FUNCEND) {
 			if (!inFunction) {
 				currentErrorCode = COMERR_UNKNOWNFUNCEND;
@@ -663,8 +688,10 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 				return INVALID_COMPILED;
 			}
 			inFunction = false;
+			functionLine = nullptr;
+			currentScopeID = UINT32_MAX;
 		}
-		variableIndexUpdateResult = updateVariableIndex(variableIndex, compiled[i]);
+		variableIndexUpdateResult = updateVariableIndex(variableIndex, compiled[i], currentScopeID);
 		if (variableIndexUpdateResult != COMERR_NO) {
 			currentErrorCode = variableIndexUpdateResult;
 			errorLineNumber = i + 1;
@@ -677,7 +704,7 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 	}
 	if (inFunction) {
 		currentErrorCode = COMERR_NOFUNCEND;
-		errorLineNumber = appPointer->contentLines;
+		errorLineNumber = appPointer->contentLines; //TODOLATER point no function end error to the right line
 		for (uint32_t i = 0; i < appPointer->contentLines; i++) {
 			freeArgumentTree(compiled[i].args);
 		}
@@ -719,11 +746,24 @@ Compiled compileToRAM(const AppHeader* appPointer) {
 			}
 		}
 	}
-	//logVariableIndex(variableIndex);
-	//update variables using indices from the table
+	if (doLogVariableIndex) logVariableIndex(variableIndex);
+	//update variables using indices from the table and scope variables
+	uint32_t functionID = UINT32_MAX;
 	for (uint32_t i = 0; i < appPointer->contentLines; i++) {
-		//look through each argument, if type variable add id and isUDF
-		indexVariableArguments(compiled[i].args, variableIndex);
+		//look through each argument, if type variable add id, isUDF, and functionID (to distinguish by scope)
+		if (compiled[i].opCode.OpCode == OP_FUNC) {
+			if (compiled[i].args.length > 0) {
+				functionID = compiled[i].args.start[0].varValue.id;
+				if (compiled[i].args.length > 1) {
+					ArgumentTree functionParams = { compiled[i].args.start + 1, (uint16_t)(compiled[i].args.length - 1) };
+					indexVariableArguments(functionParams, variableIndex, functionID);
+				}
+			}
+		} else if (compiled[i].opCode.OpCode == OP_FUNCEND) {
+			functionID = UINT32_MAX; //exit out of the function scope
+		} else {
+			indexVariableArguments(compiled[i].args, variableIndex, functionID); //non-function
+		}
 	}
 	delete variableIndex;
 	return { compiledFunctions, functionCount, compiled, appPointer->contentLines, appPointer };
@@ -854,7 +894,7 @@ void logFunction(Function func) {
 }
 
 void logCompiledRAM(Compiled source) {
-	logToConsole((std::string("Code ") + std::to_string(currentErrorCode + 0) + std::string(getErrorText(currentErrorCode))).c_str());
+	logToConsole((std::string("Code ") + std::to_string(currentErrorCode + 0) + std::string(" ") + std::string(getErrorText(currentErrorCode))).c_str());
 	logToConsole((std::string("Line ") + std::to_string(errorLineNumber)).c_str());
 	if (!source.functions) {
 		logToConsole("Invalid Compiled");

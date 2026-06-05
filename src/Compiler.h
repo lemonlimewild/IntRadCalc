@@ -1,9 +1,10 @@
 #pragma once
-#include "AppHeader.h"
-#include "Initialization.h"
 
 #ifndef COMPILER_H
 #define COMPILER_H
+#include "AppHeader.h"
+#include "Console.h"
+#include <string>
 #define INVALID_OPCODE { "opInvalid", OP_INVALID, 0 }
 #define INVALID_ARGUMENT { ARG_INVALID, 0 }
 #define INVALID_COMPILED { nullptr, 0 };
@@ -115,5 +116,7 @@ struct Compiled {
 extern CompileErrorCode currentErrorCode;
 extern uint16_t errorLineNumber;
 
-Compiled compileToRAM(const AppHeader* appPointer);
+void logToConsole(const char* message, bool noNewLine);
+
+Compiled compileToRAM(const AppHeader* appPointer, bool doLogVariableIndex = false);
 void logCompiledRAM(Compiled source);

@@ -3,22 +3,53 @@
 bool consoleOpen = true;
 const uint8_t consoleLineCount = 15;
 char* consoleLine[consoleLineCount] = {};
+TFT_eSprite consoleBuffer = TFT_eSprite(&tft);
+uint16_t consoleHeight;
+uint32_t logDelay = 0;
+
+//change the console's height (docked at bottom of the screen)
+bool changeConsoleSize(uint16_t newSize) {
+    if (consoleBuffer.created()) {
+        consoleBuffer.deleteSprite();
+    } else {
+        consoleBuffer.setColorDepth(1);
+        consoleBuffer.setBitmapColor(TFT_GREEN, TFT_BLACK);
+    }
+    consoleBuffer.createSprite(tft.width(), newSize);
+    consoleHeight = newSize;
+    return consoleBuffer.created();
+}
+
+void toggleConsole() {
+    consoleOpen = !consoleOpen;
+    renderConsole();
+}
+
+void openConsole() {
+    consoleOpen = true;
+    renderConsole();
+}
+
+void closeConsole() {
+    consoleOpen = false;
+    resizeWindows();
+}
+
+void changeConsoleLogDelay(uint32_t newDelay) {
+    logDelay = newDelay;
+}
 
 //make sure to run after display setup only!
 void renderConsole() {
     if (!consoleOpen) return;
-    if (useFrameBuffer) {
-        frameBuffer.fillRect(0, tft.height() - consoleHeight, tft.width(), consoleHeight, TFT_BLACK);
-        frameBuffer.setTextColor(TFT_GREEN);
-        for (uint8_t i = 0; i < consoleLineCount; i++) {
-            if (consoleLine[i]) {
-                frameBuffer.drawString(consoleLine[i], 10, tft.height() - i * 20 - 30, 2);
-            }
+    consoleBuffer.fillSprite(TFT_BLACK);
+    consoleBuffer.setTextColor(TFT_GREEN);
+    for (uint8_t i = 0; i < consoleLineCount; i++) {
+        if (consoleLine[i]) {
+            consoleBuffer.drawString(consoleLine[i], 10, consoleHeight - i * 20 - 30, 2);
         }
-        frameBuffer.pushSprite(0, 0);
-    } else {
-        //TODO no framebuffer console rendering
     }
+    consoleBuffer.pushSprite(0, tft.height() - consoleHeight);
 }
 
 void logToConsole(const char* message, bool noNewLine) { //char* is automatically converted to const char*, both types safe
@@ -33,7 +64,7 @@ void logToConsole(const char* message, bool noNewLine) { //char* is automaticall
         while(message[messageLen] != '\0') messageLen++;
         char* messageCopy = (char*)malloc(sizeof(char) * (messageLen + 1));
         if (!messageCopy) return;
-        for (uint16_t i = 0; i < messageLen; i++) {
+        for (uint16_t i = 0; i <= messageLen; i++) {
             messageCopy[i] = message[i];
         }
         consoleLine[0] = messageCopy;
@@ -58,4 +89,5 @@ void logToConsole(const char* message, bool noNewLine) { //char* is automaticall
         consoleLine[0] = newMessage;
     }
     renderConsole();
+    delay(logDelay);
 }

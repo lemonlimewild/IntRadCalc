@@ -11,14 +11,17 @@ class TFT_eSPI;
 class TFT_eSprite;*/
 
 extern TFT_eSPI tft;
-extern TFT_eSprite frameBuffer;
 extern bool consoleOpen;
-extern uint16_t consoleHeight;
 extern const uint8_t consoleLineCount;
-extern bool useFrameBuffer;
 extern float softwareVersion;
 
+void resizeWindows();
 void logToConsole(const char* message, bool noNewLine = false);
 void renderConsole();
+void toggleConsole();
+void openConsole();
+void closeConsole();
+bool changeConsoleSize(uint16_t newSize);
+void changeConsoleLogDelay(uint32_t newDelay);
 
 #endif //CONSOLE_H

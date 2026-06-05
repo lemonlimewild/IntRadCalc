@@ -19,6 +19,10 @@ struct Scope {
 
 std::vector<Scope> scopeStack;
 
+void logPermissions(uint8_t permissions) {
+    //TODO log permissions function
+}
+
 RuntimeError executeLine(Instruction line) {
     Scope scope = scopeStack[scopeStack.size() - 1];
     switch (line.opCode.OpCode) {
@@ -31,8 +35,14 @@ RuntimeError executeLine(Instruction line) {
     return RuntimeError::RUNERR_NO;
 }
 
+
 void beginExecution(Compiled appData) {
     if (appData.appHeaderPtr->minOSVer > softwareVersion) return;
+    logToConsole("Starting execution of ");
+    logToConsole(appData.appHeaderPtr->appName, true);
+    logToConsole("Minimum V-OS version: ");
+    logToConsole((std::to_string(appData.appHeaderPtr->minOSVer)).c_str(), true);
+    logPermissions(appData.appHeaderPtr->permissions);
     scopeStack = {};
     scopeStack.push_back({});
     RuntimeError lineResult = RuntimeError::RUNERR_NO;

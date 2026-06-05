@@ -7,6 +7,8 @@ static const char* const appContent[] = {
   "func OnProgStart input",
   "sys.disp.rect 0x000000 0 0 sys.disp.dispWidth sys.disp.dispHeight",
   "sys.disp.text 0x00FF00 input 10 10 2",
+  "new execCountDoubled",
+  "set execCountDoubled 5",
   "funcEnd",
   "func Main",
   "new execCountDoubled",

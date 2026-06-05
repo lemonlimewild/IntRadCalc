@@ -29,8 +29,9 @@ const uint16_t LORA_RST = 38;
 
 #endif //INITIALIZATION_H
 
-extern uint16_t consoleHeight;
+extern bool use16BitColorDepth;
 
+void resizeWindows();
 void loraSetup();
 bool sdSetup();
-bool tftSetup(bool sdReady, bool use16BitColorDepth);
+bool tftSetup(bool sdReady);
