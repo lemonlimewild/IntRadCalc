@@ -34,9 +34,9 @@ const char* getErrorText(CompileErrorCode code) {
 }
 
 const OpCode opCodeList[]{
-  {"func", OP_FUNC, NOARGCOUNT},
+  {"func", OP_FUNC, 2},
   {"funcEnd", OP_FUNCEND, 0},
-  {"call", OP_CALL, NOARGCOUNT},
+  {"call", OP_CALL, 2},
   {"new", OP_NEW, 1},
   {"set", OP_SET, 2},
   {"add", OP_ADD, 3},
@@ -45,15 +45,20 @@ const OpCode opCodeList[]{
   {"div", OP_DIV, 3},
   {"intToStr", OP_INTTOSTR, 1},
   {"strToInt", OP_STRTOINT, 1},
-  {"sys.disp.rect", OP_SYS_DISP_RECT, 5},
-  {"sys.disp.text", OP_SYS_DISP_TEXT, 5}
+  {"disp.rect", OP_DISP_RECT, 5},
+  {"disp.text", OP_DISP_TEXT, 5},
+  {"disp.setWindowMaximized", OP_DISP_SETWINDOWMAXIMIZED, 1},
+  {"disp.makeWindow", OP_DISP_MAKEWINDOW, 0},
+  {"disp.eventHandle.onExitMaximizedWindow", OP_DISP_EVENTHANDLE_ONEXITMAXIMIZEDWINDOW, 0}
 };
 const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode);
 
 const SysVarEntry sysVarList[] {
-	{"sys.execCount", SYSVAR_APP_EXECCOUNT, SYSMODULE_APP},
-	{"sys.disp.dispWidth", SYSVAR_DISP_DISPWIDTH, SYSMODULE_DISPLAY},
-	{"sys.disp.dispHeight", SYSVAR_DISP_DISPHEIGHT, SYSMODULE_DISPLAY}
+	{"sys.execCount", SYSVAR_APP_EXECCOUNT, SYSMODULE_APP, ARG_INTEGER},
+	{"sys.disp.dispWidth", SYSVAR_DISP_DISPWIDTH, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.disp.dispHeight", SYSVAR_DISP_DISPHEIGHT, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.disp.isMaximized", SYSVAR_DISP_ISMAXIMIZED, SYSMODULE_DISPLAY, ARG_BOOL},
+	{"sys.disp.windowSize", SYSVAR_DISP_WINDOWSIZE, SYSMODULE_DISPLAY, ARG_ARRAY}
 };
 const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry);
 
@@ -652,7 +657,7 @@ Compiled compileToRAM(const AppHeader* appPointer, bool doLogVariableIndex) {
 			free(compiled);
 			return INVALID_COMPILED;
 		}
-		if (compiled[i].opCode.argCount != compiled[i].args.length && compiled[i].opCode.argCount != NOARGCOUNT) {
+		if (compiled[i].opCode.argCount != compiled[i].args.length) {
 			//std::cout << "Counted " << compiled[i].args.length << " : Need " << (uint16_t)compiled[i].opCode.argCount << " : for " << compiled[i].opCode.tag << ";";
 			currentErrorCode = COMERR_NOARGCOUNTMATCH;
 			errorLineNumber = i + 1;

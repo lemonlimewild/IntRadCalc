@@ -9,7 +9,6 @@
 #define INVALID_ARGUMENT { ARG_INVALID, 0 }
 #define INVALID_COMPILED { nullptr, 0 };
 #define EMPTY_ARGUMENTTREE { nullptr, 0 }
-#define NOARGCOUNT UINT8_MAX
 
 enum CompileErrorCode : uint8_t {
 	COMERR_NO,
@@ -36,8 +35,13 @@ enum OpValue : uint8_t {
 	OP_DIV,
 	OP_INTTOSTR,
 	OP_STRTOINT,
-	OP_SYS_DISP_RECT,
-	OP_SYS_DISP_TEXT
+	OP_DISP_EVENTHANDLE_ONMAXIMIZEWINDOW,
+	OP_DISP_EVENTHANDLE_ONEXITMAXIMIZEDWINDOW,
+	OP_DISP_EVENTHANDLE_ONMINIMIZEWINDOW,
+	OP_DISP_RECT,
+	OP_DISP_TEXT,
+	OP_DISP_SETWINDOWMAXIMIZED,
+	OP_DISP_MAKEWINDOW
 };
 enum ArgType : uint8_t {
 	ARG_INTEGER,
@@ -57,7 +61,9 @@ enum SysVar : uint8_t {
 	SYSVAR_NONE,
     SYSVAR_APP_EXECCOUNT,
     SYSVAR_DISP_DISPWIDTH,
-    SYSVAR_DISP_DISPHEIGHT
+    SYSVAR_DISP_DISPHEIGHT,
+	SYSVAR_DISP_ISMAXIMIZED,
+	SYSVAR_DISP_WINDOWSIZE,
 };
 struct CompileError {
 	CompileErrorCode errorCode;
@@ -72,6 +78,7 @@ struct SysVarEntry{
 	const char* tag;
 	SysVar sysVar;
 	SysSubmodule sysSubmodule;
+	ArgType argType;
 };
 struct Argument;
 struct ArgumentTree {

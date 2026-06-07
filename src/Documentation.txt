@@ -1,0 +1,58 @@
+Documentation
+
+TODONEXT remove entry function priority, add window type, implement OpCodes
+
+Types Held by Variables
+    Array
+    Boolean
+    Color
+    Float
+    Integer
+    String
+    Window
+
+Note
+    (name) indicates that either a valid function or variable name should be passed
+    (var) indicates that an exisitng variable should be passed
+    (func) indicates that an existing function should be passed
+    (any) indicates that any type can be passed
+
+OpCodes
+    No Submodule
+        new (name) || creates a new variable with name 1
+        set (var) (any) || sets 1 to 2
+        delete (var) || deletes variable 1
+        add (var) (int, float) (int, float) || sets 1 to 2 + 3
+        sub (var) (int, float) (int, float) || sets 1 to 2 - 3
+        mul (var) (int, float) (int, float) || sets 1 to 2 * 3
+        div (var) (int, float) (int, float) || sets 1 to 2 / 3
+        mod (var) (int, float) (int, float) || sets 1 to 2 (mod 3)
+        toInt (bool, float, int, str) || converts 1 to int type
+        toFloat (bool, float, int, str) || converts 1 to float type
+        toStr (bool, float, int, str) || converts 1 to string type
+        toBool (bool, float, int, str) || converts 1 to boolean type
+        call (func) (array) || calls the function with array of arguments 2
+        func (name) (array:str) || defines a new function with name 1 and parameter names
+        funcEnd || ends the function that was last defined
+        if (bool) || defines a new if statement that executes only if 1 is true
+        ifEnd || ends the if statement that was last defined
+        while (bool) || defines a new while loop that executes only if 1 is true
+        whileEnd || ends the while loop that was last defined
+        equal (var) (any) (any) || sets 1 to true if 2 and 3 are equal, false otherwise
+        less (var) (any) (any) || sets 1 to true if 2 is less than 3, false otherwise
+        greater (var) (any) (any) || sets 1 to true if 2 is greater than 3, false otherwise
+        getAtIndex (var) (array) (int) || sets 1 to the value at index 3 of array 2
+        TODO more array stuff
+    Display
+        disp.rect (color) (int) (int) (int) (int) || draws a rectangle within the application window with color 1, x-position 2, y-position 3, width 4, and height 5
+        dist.text (color) (str) (int) (int) (int) || draws text within the application window with color 1, text content 2, x-position 3, y-position 4, and font number 5
+        disp.newWindow (name) || makes and sets variable 1 to a new window
+        disp.deleteWindow (window) || closes window 1
+        disp.maximizeWindow (window) || maximizes window 1
+        disp.minimizeWindow (window) || minimizes window 1
+        disp.regularizeWindow (window) || returns window 1 to a regular, visible and non-maximized state
+    Event
+        event.end || ends the event that was last defined
+        Display
+            event.disp.changedWindowState (window) (str:""-"max"-"reg"-"min") (str:"":"max":"reg":"min") || defines code to run when window 1 state changes from 2 to 3
+            event.disp.changedWindowSize (window) || defines code to run when window 1 size changes

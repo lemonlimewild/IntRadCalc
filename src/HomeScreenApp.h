@@ -4,6 +4,24 @@
 extern const AppHeader HomeScreenApp;
 
 static const char* const appContent[] = {
+  "new dimensions",
+  "set dimensions sys.disp.windowSize",
+  "func Main",
+  "disp.makeWindow",
+  "disp.setWindowMaximized true",
+  "disp.rect 0x000000 dimensions[0] dimensions[1] dimensions[2] dimensions[3]",
+  "new textX",
+  "new textY",
+  "set textX dimensions[0]",
+  "set textY dimensions[1]",
+  "add textX 10",
+  "add textY 30",
+  "disp.text 0x00FF00 \"Some Text\" dimensions[0] dimensions[1] 2",
+  "funcEnd",
+  "eventHandle sys.events.windowResize",
+  "eventHandleEnd"
+};
+/*static const char* const appContent[] = {
   "func OnProgStart input",
   "sys.disp.rect 0x000000 0 0 sys.disp.dispWidth sys.disp.dispHeight",
   "sys.disp.text 0x00FF00 input 10 10 2",
