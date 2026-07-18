@@ -1,7 +1,5 @@
 Documentation
 
-TODONEXT remove entry function priority, add window type, implement OpCodes
-
 Types Held by Variables
     Array
     Boolean
@@ -16,6 +14,12 @@ Note
     (var) indicates that an exisitng variable should be passed
     (func) indicates that an existing function should be passed
     (any) indicates that any type can be passed
+
+System Submodules
+    Application || app || basic application permissions
+    Display || disp || information about the display
+    Window || win || manage owned window instances
+    Window Admin || winsu || manage unowned window instances
 
 OpCodes
     No Submodule
@@ -32,7 +36,7 @@ OpCodes
         toStr (bool, float, int, str) || converts 1 to string type
         toBool (bool, float, int, str) || converts 1 to boolean type
         call (func) (array) || calls the function with array of arguments 2
-        func (name) (array:str) || defines a new function with name 1 and parameter names
+        func (name) (array) || defines a new function with name 1 and list of parameters 2
         funcEnd || ends the function that was last defined
         if (bool) || defines a new if statement that executes only if 1 is true
         ifEnd || ends the if statement that was last defined
@@ -45,14 +49,49 @@ OpCodes
         TODO more array stuff
     Display
         disp.rect (color) (int) (int) (int) (int) || draws a rectangle within the application window with color 1, x-position 2, y-position 3, width 4, and height 5
-        dist.text (color) (str) (int) (int) (int) || draws text within the application window with color 1, text content 2, x-position 3, y-position 4, and font number 5
-        disp.newWindow (name) || makes and sets variable 1 to a new window
-        disp.deleteWindow (window) || closes window 1
-        disp.maximizeWindow (window) || maximizes window 1
-        disp.minimizeWindow (window) || minimizes window 1
-        disp.regularizeWindow (window) || returns window 1 to a regular, visible and non-maximized state
+        disp.text (color) (str) (int) (int) (int) || draws text within the application window with color 1, text content 2, x-position 3, y-position 4, and font number 5
+    Window
+        win.new (name) || makes and sets variable 1 to a new window
+        win.delete (window) || deletes window instance 1
+        win.width (var) (window) || sets 1 to the width of window 2
+        win.height (var) (window) || sets 1 to the height of window 2
+        win.xOffset (var) (window) || sets 1 to the x offset of window 2
+        win.yOffset (var) (window) || sets 1 to the y offset of window 2
+        win.setWidth (window) (int) || sets the width of window 1 to 2
+        win.setHeight (window) (int) || sets the height of window 1 to 2
+        win.setXOffset (window) (int) || sets the x offset of window 1 to 2
+        win.setYOffset (window) (int) || sets the y offset of window 1 to 2
+        win.focus (window) || focuses window 1
+        win.maximize (window) || maximizes window 1
+        win.minimize (window) || minimizes window 1
+        win.regularize (window) || returns window 1 to a regular state (not maximized or minimized)
     Event
         event.end || ends the event that was last defined
-        Display
-            event.disp.changedWindowState (window) (str:""-"max"-"reg"-"min") (str:"":"max":"reg":"min") || defines code to run when window 1 state changes from 2 to 3
-            event.disp.changedWindowSize (window) || defines code to run when window 1 size changes
+        Window
+            event.win.changedState (window) || defines code to run when window 1 state changes
+                event.lastState
+                event.thisState
+            event.win.changedSize (window) || defines code to run when window 1 size changes
+                event.lastWidth
+                event.lastHeight
+                event.thisWidth
+                event.thisHeight
+
+
+System Variables (Non-Event)
+    sys.app.execCount || int
+    sys.app.maximized || bool
+    sys.app.minimized || bool
+    sys.app.regularized || bool
+    sys.app.listWindows || array:str
+    sys.disp.trueWidth || int
+    sys.disp.trueHeight || int
+    sys.disp.availableWidth || int
+    sys.disp.availableHeight || int
+    sys.win.maximizedWindows || array:str
+    sys.win.minimizedWindows || array:str
+    sys.win.regularizedWindows || array:str
+    sys.win.focusedWindow || int
+
+Windows
+    When launching an application, a window with ID "main" will be created, which can then be manipulated by the app.

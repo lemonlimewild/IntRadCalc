@@ -22,8 +22,8 @@ void setup(void) {
   bool tftReady = tftSetup(sdReady);
   Serial.begin(9600);
   Compiled testCompiled = compileToRAM(&HomeScreenApp);
-  //logCompiledRAM(testCompiled);
-  beginExecution(testCompiled);
+  logCompiledRAM(testCompiled);
+  //beginExecution(testCompiled);
   //loraSetup();
 }
 

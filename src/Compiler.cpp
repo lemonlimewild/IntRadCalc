@@ -33,32 +33,76 @@ const char* getErrorText(CompileErrorCode code) {
 	return "Undefined Error.";
 }
 
+//thanks to ChatGPT for typing this out!
 const OpCode opCodeList[]{
-  {"func", OP_FUNC, 2},
-  {"funcEnd", OP_FUNCEND, 0},
-  {"call", OP_CALL, 2},
-  {"new", OP_NEW, 1},
-  {"set", OP_SET, 2},
-  {"add", OP_ADD, 3},
-  {"sub", OP_SUB, 3},
-  {"mul", OP_MUL, 3},
-  {"div", OP_DIV, 3},
-  {"intToStr", OP_INTTOSTR, 1},
-  {"strToInt", OP_STRTOINT, 1},
-  {"disp.rect", OP_DISP_RECT, 5},
-  {"disp.text", OP_DISP_TEXT, 5},
-  {"disp.setWindowMaximized", OP_DISP_SETWINDOWMAXIMIZED, 1},
-  {"disp.makeWindow", OP_DISP_MAKEWINDOW, 0},
-  {"disp.eventHandle.onExitMaximizedWindow", OP_DISP_EVENTHANDLE_ONEXITMAXIMIZEDWINDOW, 0}
+    {"func", OP_FUNC, 2},
+    {"funcEnd", OP_FUNCEND, 0},
+    {"call", OP_CALL, 2},
+
+    {"new", OP_NEW, 1},
+    {"set", OP_SET, 2},
+    {"delete", OP_DELETE, 1},
+
+    {"add", OP_ADD, 3},
+    {"sub", OP_SUB, 3},
+    {"mul", OP_MUL, 3},
+    {"div", OP_DIV, 3},
+    {"mod", OP_MOD, 3},
+
+    {"toInt", OP_TOINT, 1},
+    {"toFloat", OP_TOFLOAT, 1},
+    {"toStr", OP_TOSTR, 1},
+    {"toBool", OP_TOBOOL, 1},
+
+    {"if", OP_IF, 1},
+    {"ifEnd", OP_IFEND, 0},
+    {"while", OP_WHILE, 1},
+    {"whileEnd", OP_WHILEEND, 0},
+
+    {"equal", OP_EQUAL, 3},
+    {"less", OP_LESS, 3},
+    {"greater", OP_GREATER, 3},
+
+    {"getAtIndex", OP_GETATINDEX, 3},
+
+    {"disp.rect", OP_DISP_RECT, 5},
+    {"disp.text", OP_DISP_TEXT, 5},
+
+    {"win.new", OP_WIN_NEW, 1},
+    {"win.delete", OP_WIN_DELETE, 1},
+    {"win.width", OP_WIN_WIDTH, 2},
+    {"win.height", OP_WIN_HEIGHT, 2},
+    {"win.xOffset", OP_WIN_XOFFSET, 2},
+    {"win.yOffset", OP_WIN_YOFFSET, 2},
+    {"win.setXOffset", OP_WIN_SETXOFFSET, 2},
+    {"win.setYOffset", OP_WIN_SETYOFFSET, 2},
+    {"win.setWidth", OP_WIN_SETWIDTH, 2},
+    {"win.setHeight", OP_WIN_SETHEIGHT, 2},
+    {"win.focus", OP_WIN_FOCUS, 1},
+    {"win.maximize", OP_WIN_MAXIMIZE, 1},
+    {"win.minimize", OP_WIN_MINIMIZE, 1},
+    {"win.regularize", OP_WIN_REGULARIZE, 1},
+
+    {"event.end", OP_EVENT_END, 0},
+    {"event.win.changedState", OP_EVENT_WIN_CHANGEDSTATE, 1},
+    {"event.win.changedSize", OP_EVENT_WIN_CHANGEDSIZE, 1},
 };
 const uint8_t opCodeCount = sizeof(opCodeList) / sizeof(OpCode);
 
 const SysVarEntry sysVarList[] {
-	{"sys.execCount", SYSVAR_APP_EXECCOUNT, SYSMODULE_APP, ARG_INTEGER},
-	{"sys.disp.dispWidth", SYSVAR_DISP_DISPWIDTH, SYSMODULE_DISPLAY, ARG_INTEGER},
-	{"sys.disp.dispHeight", SYSVAR_DISP_DISPHEIGHT, SYSMODULE_DISPLAY, ARG_INTEGER},
-	{"sys.disp.isMaximized", SYSVAR_DISP_ISMAXIMIZED, SYSMODULE_DISPLAY, ARG_BOOL},
-	{"sys.disp.windowSize", SYSVAR_DISP_WINDOWSIZE, SYSMODULE_DISPLAY, ARG_ARRAY}
+	{"sys.app.execCount", SYSVAR_APP_EXECCOUNT, SYSMODULE_APPLICATION, ARG_INTEGER},
+	{"sys.app.maximized", SYSVAR_APP_MAXIMIZED, SYSMODULE_APPLICATION, ARG_BOOLEAN},
+	{"sys.app.minimized", SYSVAR_APP_MINIMIZED, SYSMODULE_APPLICATION, ARG_BOOLEAN},
+	{"sys.app.listWindows", SYSVAR_WIN_LISTWINDOWS, SYSMODULE_APPLICATION, ARG_ARRAY},
+	{"sys.app.regularized", SYSVAR_APP_REGULARIZED, SYSMODULE_APPLICATION, ARG_BOOLEAN},
+	{"sys.disp.trueWidth", SYSVAR_DISP_TRUEWIDTH, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.disp.trueHeight", SYSVAR_DISP_TRUEHEIGHT, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.disp.availableWidth", SYSVAR_DISP_AVAILABLEWIDTH, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.disp.availableHeight", SYSVAR_DISP_AVAILABLEHEIGHT, SYSMODULE_DISPLAY, ARG_INTEGER},
+	{"sys.win.maximizedWindows", SYSVAR_WIN_MAXIMIZEDWINDOWS, SYSMODULE_WINDOW, ARG_ARRAY},
+	{"sys.win.minimizedWindows", SYSVAR_WIN_MINIMIZEDWINDOWS, SYSMODULE_WINDOW, ARG_ARRAY},
+	{"sys.win.regularizedWindows", SYSVAR_WIN_REGULARIZEDWINDOWS, SYSMODULE_WINDOW, ARG_ARRAY},
+	{"sys.win.focusedWindow", SYSVAR_WIN_FOCUSEDWINDOW, SYSMODULE_WINDOW, ARG_INTEGER},
 };
 const uint8_t sysVarCount = sizeof(sysVarList) / sizeof(SysVarEntry);
 
@@ -103,6 +147,8 @@ void freeArgument(Argument* arg) {
 	case ARG_COLOR:
 		free(arg->colorValue);
 		break;
+	case ARG_WINDOW:
+		free(arg->windowValue);
 	default:
 		break;
 	}
@@ -185,7 +231,7 @@ OpCode getOpCodeFromLine(const char* line) {
 	}
 	else {
 		uint16_t lineLength = i;
-		uint16_t shortestMatchLongerBy = 65535;
+		uint16_t shortestMatchLongerBy = UINT16_MAX;
 		uint16_t shortestMatchIndex = 0;
 		for (uint16_t j = 0; j < *matchCountPtr; j++) {
 			uint16_t matchLength = 0;
@@ -398,7 +444,6 @@ bool parseArray(const char* startPtr, Argument& atRef) {
 	while (*position == ' ') position++;
 	uint16_t argumentCount = countArguments(position);
 	if (argumentCount == 0) {
-		//atRef = { .type = ARG_ARRAY, .arrayValue = EMPTY_ARGUMENTTREE };
 		atRef = {};
 		atRef.type = ARG_ARRAY;
 		atRef.arrayValue = EMPTY_ARGUMENTTREE;
@@ -422,7 +467,6 @@ bool parseArray(const char* startPtr, Argument& atRef) {
 		i++;
 	}
 
-	//atRef = { .type = ARG_ARRAY, .arrayValue = { .length = argumentCount, .start = array } };
 	atRef = {};
 	atRef.type = ARG_ARRAY;
 	atRef.arrayValue = {};
@@ -432,8 +476,7 @@ bool parseArray(const char* startPtr, Argument& atRef) {
 }
 
 bool parseBool(const char* startPtr, Argument& boolRef) {
-	//boolRef = { .type = ARG_BOOL, .boolValue = false };
-	boolRef = { ARG_BOOL, false };
+	boolRef = { ARG_BOOLEAN, false };
 	if (startPtr[0] == 't' && startPtr[1] == 'r' && startPtr[2] == 'u' && startPtr[3] == 'e' && isEndOfArgument(startPtr[4])) {
 		boolRef.boolValue = true;
 	} else if (startPtr[0] == 'f' && startPtr[1] == 'a' && startPtr[2] == 'l' && startPtr[3] == 's' && startPtr[4] == 'e' && isEndOfArgument(startPtr[5])) {
@@ -522,6 +565,28 @@ bool parseColor(const char* startPtr, Argument& colorRef) {
 	return true;
 }
 
+bool parseWindow(const char* startPtr, Argument& windowRef) {
+	windowRef = INVALID_ARGUMENT;
+	if (startPtr[0] == '$') {
+		uint8_t i = 1;
+		while (i < UINT8_MAX && startPtr[i] >= 'a' && startPtr[i] <= 'z') {
+			i++;
+		}
+		if (!isEndOfArgument(startPtr[i])) return false;
+		windowRef = {};
+		windowRef.type = ARG_WINDOW;
+		char* name = (char*)malloc((i) * sizeof(char));
+		for (uint32_t j = 0; j < i - 1; j++) {
+			name[j] = startPtr[j + 1];
+		}
+		name[i - 1] = '\0';
+		windowRef.windowValue = name;
+		return true;
+	} else {
+		return false;
+	}
+}
+
 Argument recursiveGetArgument(const char* argStartPtr) {
 	{Argument arrVal;
 	if (parseArray(argStartPtr, arrVal)) return arrVal;}
@@ -533,6 +598,8 @@ Argument recursiveGetArgument(const char* argStartPtr) {
 	if (parseBool(argStartPtr, boolValue)) return boolValue;}
 	{Argument colorValue;
 	if (parseColor(argStartPtr, colorValue)) return colorValue;}
+	{Argument windowValue;
+	if (parseWindow(argStartPtr, windowValue)) return windowValue;}
 	{Argument varValue;
 	if (parseVariable(argStartPtr, varValue)) return varValue;}
 
@@ -725,30 +792,13 @@ Compiled compileToRAM(const AppHeader* appPointer, bool doLogVariableIndex) {
 		return INVALID_COMPILED;
 	}
 	uint32_t start = 0;
-	uint32_t currentFunction = 1;
-	bool isEntryFunction = false;
-	bool isMatching;
-	uint16_t j;
-	for (uint32_t i = 0; i < appPointer->contentLines && currentFunction <= functionCount; i++) {
+	uint32_t currentFunction = 0;
+	for (uint32_t i = 0; i < appPointer->contentLines && currentFunction < functionCount; i++) {
 		if (compiled[i].opCode.OpCode == OP_FUNC) {
 			start = i;
-			isMatching = true;
-			j = 0;
-			while (programEntryFunctionName[j] != '\0') {
-				if (compiled[i].args.start[0].varValue.name[j] != programEntryFunctionName[j]) {
-					isMatching = false;
-					break;
-				}
-				j++;
-			}
-			isEntryFunction = isMatching;
 		} else if (compiled[i].opCode.OpCode == OP_FUNCEND) {
-			if (isEntryFunction) {
-				compiledFunctions[0] = { compiled + start, i - start + 1 };
-			} else {
-				compiledFunctions[currentFunction] = { compiled + start, i - start + 1 };
-				currentFunction++;
-			}
+			compiledFunctions[currentFunction] = { compiled + start, i - start + 1 };
+			currentFunction++;
 		}
 	}
 	if (doLogVariableIndex) logVariableIndex(variableIndex);
@@ -825,7 +875,7 @@ void logArgumentTree(ArgumentTree tree, uint16_t subTree = 0) {
 		if (tree.start != nullptr) {
 			logToConsole((std::string("Content Size ") + std::to_string(getArgumentTreeSize(tree)) + std::string(" -  Logging Argument Tree...")).c_str());
 		} else {
-			logToConsole((std::string("Content Size ") + std::to_string(getArgumentTreeSize(tree)) + std::string(" -  Empty of Invalid Tree.")).c_str());
+			logToConsole((std::string("Content Size ") + std::to_string(getArgumentTreeSize(tree)) + std::string(" -  Empty or Invalid Tree.")).c_str());
 			return;
 		}
 	} else {
@@ -846,16 +896,19 @@ void logArgumentTree(ArgumentTree tree, uint16_t subTree = 0) {
 			case ARG_INTEGER:
 				logToConsole((std::string("Integer: ") + std::to_string(tree.start[i].intValue)).c_str());
 				break;
-				case ARG_FLOAT:
-				logToConsole((std::string("Float: ") + std::to_string(tree.start[i].intValue)).c_str());
+			case ARG_FLOAT:
+				logToConsole((std::string("Float: ") + std::to_string(tree.start[i].floatValue)).c_str());
 				break;
-				case ARG_BOOL:
+			case ARG_BOOLEAN:
 				logToConsole((std::string("Boolean: ") + std::string(((tree.start[i].boolValue) ? "true" : "false"))).c_str());
 				break;
-				case ARG_COLOR:
+			case ARG_COLOR:
 				logToConsole((std::string("Color: ") + std::string(tree.start[i].colorValue)).c_str());
 				break;
-				case ARG_VARIABLE:
+			case ARG_WINDOW:
+				logToConsole((std::string("Window: ") + std::string(tree.start[i].windowValue)).c_str());
+				break;
+			case ARG_VARIABLE:
 				if (tree.start[i].varValue.isUDF) {
 					logToConsole((std::string("Function (Call/Name): ") + std::string(tree.start[i].varValue.name) + std::string(" : ID: ") + std::to_string(tree.start[i].varValue.id)).c_str());
 				} else {
@@ -883,7 +936,10 @@ void logInstruction(Instruction inst) {
 	}
 	uint8_t i = 0;
 	while (i < UINT8_MAX && inst.opCode.OpCode != opCodeList[i].OpCode) i++;
-	if (i == UINT8_MAX) return;
+	if (i == UINT8_MAX) {
+		logToConsole("Read Error: Compiled operation code does not match any existing.");
+		return;
+	}
 	logToConsole(opCodeList[i].tag);
 	logArgumentTree(inst.args);
 }
@@ -892,20 +948,29 @@ void logFunction(Function func) {
 	logToConsole("Logging Function...");
 	if (!func.entry) {
 		logToConsole("Invalid Function");
+		logToConsole("Length: ");
+		logToConsole(std::to_string(func.length).c_str(), true);
+		logToConsole("Entry Point: ");
+		logToConsole(std::to_string((uint32_t)func.entry).c_str(), true);
 		return;
-	}	for (uint32_t i = 0; i < func.length; i++) {
+	}
+	for (uint32_t i = 0; i < func.length; i++) {
 		logInstruction(func.entry[i]);
 	}
 }
 
 void logCompiledRAM(Compiled source) {
-	logToConsole((std::string("Code ") + std::to_string(currentErrorCode + 0) + std::string(" ") + std::string(getErrorText(currentErrorCode))).c_str());
+	logToConsole((std::string("Code ") + std::to_string((int)currentErrorCode) + std::string(" ") + std::string(getErrorText(currentErrorCode))).c_str());
 	logToConsole((std::string("Line ") + std::to_string(errorLineNumber)).c_str());
 	if (!source.functions) {
 		logToConsole("Invalid Compiled");
 		return;
 	}
+	logToConsole("Logging ");
+	logToConsole(std::to_string(source.functionCount).c_str(), true);
+	logToConsole(" Function(s)", true);
 	for (uint32_t i = 0; i < source.functionCount; i++) {
 		logFunction(source.functions[i]);
 	}
+	logToConsole("End of compiled.");
 }

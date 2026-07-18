@@ -40,7 +40,7 @@ bool tftSetup(bool sdReady) {
 
 	tft.fillScreen(TFT_SKYBLUE);
 	changeConsoleSize(tft.height() / 2); //init the console
-	changeConsoleLogDelay(1000);
+	changeConsoleLogDelay(500);
 	logToConsole((std::string("Running version: ") + std::to_string(softwareVersion)).c_str());
 	logToConsole((std::string("Display Resolution: ") + std::to_string(tft.width()) + std::string(" x ") + std::to_string(tft.height()) + std::string(" pixels")).c_str());
 	if (sdReady) {

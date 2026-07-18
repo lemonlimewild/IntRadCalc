@@ -61,20 +61,23 @@ void logToConsole(const char* message, bool noNewLine) { //char* is automaticall
             consoleLine[i] = consoleLine[i - 1];
         }
         uint16_t messageLen = 0;
-        while(message[messageLen] != '\0') messageLen++;
+        while (message[messageLen] != '\0') messageLen++;
         char* messageCopy = (char*)malloc(sizeof(char) * (messageLen + 1));
         if (!messageCopy) return;
         for (uint16_t i = 0; i <= messageLen; i++) {
             messageCopy[i] = message[i];
         }
         consoleLine[0] = messageCopy;
+        renderConsole();
+        delay(logDelay);
     } else {
         if (!consoleLine[0]) return;
         uint16_t lastLength = 0;
         uint16_t appendLength = 0;
         while (consoleLine[0][lastLength] != '\0') lastLength++;
-        while (consoleLine[0][appendLength] != '\0') appendLength++;
-        char* newMessage = (char*)malloc(lastLength + appendLength);
+        while (message[appendLength] != '\0') appendLength++;
+        char* newMessage = (char*)malloc(sizeof(char) * (lastLength + appendLength + 1));
+        if (!newMessage) return;
         uint16_t index = 0;
         while (index < lastLength) {
             newMessage[index] = consoleLine[0][index];
@@ -85,9 +88,9 @@ void logToConsole(const char* message, bool noNewLine) { //char* is automaticall
             newMessage[lastLength + index] = message[index];
             index++;
         }
+        newMessage[lastLength + appendLength] = '\0';
         free(consoleLine[0]);
         consoleLine[0] = newMessage;
+        renderConsole();
     }
-    renderConsole();
-    delay(logDelay);
 }
