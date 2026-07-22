@@ -21,8 +21,11 @@ bool changeConsoleSize(uint16_t newSize) {
 }
 
 void toggleConsole() {
-    consoleOpen = !consoleOpen;
-    renderConsole();
+    if (consoleOpen) {
+        openConsole();
+    } else {
+        closeConsole();
+    }
 }
 
 void openConsole() {
@@ -93,4 +96,8 @@ void logToConsole(const char* message, bool noNewLine) { //char* is automaticall
         consoleLine[0] = newMessage;
         renderConsole();
     }
+}
+
+void logToConsole(double message, bool noNewLine) { //avoid annoying manual conversion to char*
+    logToConsole(std::to_string(message).c_str(), noNewLine);
 }

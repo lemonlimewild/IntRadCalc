@@ -17,6 +17,7 @@ extern float softwareVersion;
 
 void resizeWindows();
 void logToConsole(const char* message, bool noNewLine = false);
+void logToConsole(double message, bool noNewLine = false);
 void renderConsole();
 void toggleConsole();
 void openConsole();

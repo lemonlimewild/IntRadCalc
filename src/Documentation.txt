@@ -95,3 +95,6 @@ System Variables (Non-Event)
 
 Windows
     When launching an application, a window with ID "main" will be created, which can then be manipulated by the app.
+
+//TODONEXT UI, Interpreter, Macros, run compiled off sd/ram, compile off sd/ram
+//console windows per-app

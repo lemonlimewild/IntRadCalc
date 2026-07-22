@@ -9,6 +9,9 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include "Console.h"
+#include "SettingsManager.h"
+#include "WiFiWinConnect.h"
+#include "LittleFS.h"
 
 //pin definitions for reference
 //TFT_MOSI = 12;
@@ -30,8 +33,10 @@ const uint16_t LORA_RST = 38;
 #endif //INITIALIZATION_H
 
 extern bool use16BitColorDepth;
+extern float softwareVersion;
 
 void resizeWindows();
 void loraSetup();
 bool sdSetup();
 bool tftSetup(bool sdReady);
+bool initOBFS();
